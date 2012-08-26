@@ -1,0 +1,23 @@
+{
+  "author": ["Jeppe Toustrup <tenzer@tenzer.dk> (http://tenzer.dk/)","a4a881d4"],
+  "name": "nbd-server",
+  "description": "Server daemon for the NBD protocol",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/a4a881d4/nbd-server.git"
+  },
+  "main": "nbd.js",
+  "engines": {
+    "node": "~0.8.4"
+  },
+  "dependencies": {
+    "bitset": "~0.2.0",
+    "commander": "~0.5.2"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "scripts": {
+    "start": "node nbd.js"
+  },
+}
