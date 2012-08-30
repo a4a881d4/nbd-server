@@ -33,18 +33,7 @@ if (commander.args.length === 0) {
 }
 
 var file = commander.args[0];
-
-try {
-    var stat = fs.statSync(file);
-} catch (err) {
-    console.log('The path you have provided either don\'t exist, or can\'t be read.');
-    process.exit(1);
-}
-
-if (!stat.isFile()) {
-    console.log('The path you have provided does not look like a file to me.');
-    process.exit(1);
-}
+var bf = require('./lib/bigfile')(file);
 
 if (typeof commander.port !== 'number') {
     console.log('The port to listen on needs to be specified, and has to be a number.');
@@ -87,7 +76,7 @@ server.on('listening', function () {
         ip_print = commander.ip;
     }
 
-    var file_size_mb = Math.round(stat.size / 10485.76) / 100;
+    var file_size_mb = Math.round(bf.size() / 10485.76) / 100;
 
     console.log('Listening on ' + ip_print + ':' + commander.port +
         ' - Serving "' + file + '" (' + file_size_mb + ' MB)\n');
@@ -141,16 +130,9 @@ server.on('connection', function (socket) {
           ( function( req ) {
           switch (req.mode) {
             case 'read':
-                fs.open(file, 'r', function fdOpen (err, fd) {
-                    if (err) {
-                        // TODO: Send an error message back to the client
-                        socket.destroy();
-                        throw new Error('Error while opening file for reading: ' + err.message);
-                    }
-
-                    var data = new Buffer(req.len);
-                    fs.read(fd, data, 0, req.len, req.from, function dataRead (err, bytesRead, buffer) {
-                        if (err) {
+                var data = new Buffer(req.len);
+                bf.read( data, req.len, req.from, function dataRead (err, bytesRead, buffer) {
+                   if (err) {
                             // TODO: Send an error message back to the client
                             socket.destroy();
                             throw new Error('Error while reading: ' + err.message);
@@ -164,24 +146,6 @@ server.on('connection', function (socket) {
                 break;
 
             case 'write':
-                fs.open(file, 'a', function fdOpen (err, fd) {
-                    if (err) {
-                        // TODO: Send an error message back to the client
-                        socket.destroy();
-                        throw new Error('Error while opening file for writing: ' + err.message);
-                    }
-
-                    fs.write(fd, req.data, 0, req.len, req.from, function writeDone (err, written, buffer) {
-                        if (err) {
-                            // TODO: Send an error message back to the client
-                            util.debug('Error while writing: ' + err.message);
-                        }
-
-                        util.log('Wrote ' + written + ' starting from ' + req.from/4096 +':'+req.from%4096 + ' for ' + socket.remoteAddress);
-                        var res = new Response(req);
-                        return socket.write(res.buf);
-                    });
-                });
                 return socket.destroy();
 
             case 'disconnect':
@@ -189,24 +153,6 @@ server.on('connection', function (socket) {
                 return socket.end();
 
             case 'flush':
-                fs.open(file, 'w', function fdOpen (err, fd) {
-                    if (err) {
-                        // TODO: Send an error message back to the client
-                        socket.destroy();
-                        throw new Error('Error while opening file for flushing: ' + err.message);
-                    }
-
-                    fs.fsync(fd, function flushDone (err) {
-                        if (err) {
-                            // TODO: Send an error message back to the client
-                            util.debug('Error while flushing: ' + err.message);
-                        }
-
-                        util.log('Flushed for ' + socket.remoteAddress);
-                        var res = new Response(req);
-                        return socket.write(res.buf);
-                    });
-                });
                 break;
 
             case 'trim':
