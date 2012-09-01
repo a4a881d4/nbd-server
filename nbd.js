@@ -12,7 +12,7 @@ var util = require('util');
 var fs = require('fs');
 var commander = require('commander');
 var net = require('net');
-var BitSet = require('bitset');
+var BitSet = require('lib/bitset');
 var Response = require(__dirname + '/lib/response');
 var parseStream = require(__dirname+'/lib/parseStream');
 
@@ -33,7 +33,8 @@ if (commander.args.length === 0) {
 }
 
 var file = commander.args[0];
-var bf = require('./lib/bigfile')(file);
+var bf = require('./lib/bigfile');
+bf.parse(file);
 
 if (typeof commander.port !== 'number') {
     console.log('The port to listen on needs to be specified, and has to be a number.');
@@ -104,7 +105,7 @@ server.on('connection', function (socket) {
     new Buffer([0x00, 0x00, 0x42, 0x02, 0x81, 0x86, 0x12, 0x53]).copy(handshake, 8);
 
     // File size - 8 bytes
-    int2buf(stat.size, 8).copy(handshake, 16);
+    int2buf(bf.size(), 8).copy(handshake, 16);
 
     // Flags - 4 bytes
     // Note: BitSet counts bits starting from 1
@@ -142,7 +143,7 @@ server.on('connection', function (socket) {
                         var res = new Response(req, buffer);
                         return socket.write(res.buf);
                     });
-                });
+
                 break;
 
             case 'write':
